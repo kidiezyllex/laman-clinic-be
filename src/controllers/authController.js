@@ -7,7 +7,7 @@ import Cashier from "../models/Cashier.js";
 import Receptionist from "../models/Receptionist.js";
 
 import jwt from "jsonwebtoken";
-import { redisClient } from "../redis/redisClient.js";
+import { priorityQueue } from "../utils/priorityQueue.js";
 import dotenv from "dotenv";
 dotenv.config();
 // Tạo token JWT
@@ -143,7 +143,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Nếu người dùng là bác sĩ, đặt trạng thái isOnline = true và xử lý hàng đợi trong Redis
+    // Nếu người dùng là bác sĩ, đặt trạng thái isOnline = true
     if (user.role === "doctor") {
       const doctor = await Doctor.findOne({ email });
       doctor.isOnline = true;
@@ -190,10 +190,7 @@ export const logout = async (req, res) => {
     // Nếu là bác sĩ, đặt lại isOnline = false
     if (user.role === "doctor") {
       user.isOnline = false;
-      const queueKey = `queue:${user.roomNumber}`;
-      await redisClient.del(queueKey); // Xóa queue khi bác sĩ offline
       user.roomNumber = "000";
-      // Xóa queue của bác sĩ trong Redis
       await user.save();
     }
 

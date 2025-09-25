@@ -12,7 +12,7 @@ import {
 
 const routerPharmacist = express.Router();
 
-routerPharmacist.get("/get-list-prescriptions", listPrescriptionsController); // có đụng redis
+routerPharmacist.get("/get-list-prescriptions", listPrescriptionsController); // now uses in-memory queue
 
 routerPharmacist.post("/", createPharmacistController);
 

@@ -13,7 +13,7 @@ import {
   updateDoctorOnlineStatusController,
   createRequestTestController,
 } from "../controllers/doctorController.js";
-import { redisClient } from "../redis/redisClient.js";
+import { priorityQueue } from "../utils/priorityQueue.js";
 
 const routerDoctor = express.Router();
 
@@ -36,10 +36,9 @@ routerDoctor.post("/reExamination", createReExaminationController);
 // vd: GET http://.../api/doctors/BS-ABCDEF/appointments/2024-11-09
 routerDoctor.get("/get-appointments/:roomNumber", async (req, res) => {
   const { roomNumber } = req.params;
-  const queueKey = `queue:${roomNumber}`;
 
   try {
-    const patientsData = await redisClient.lRange(queueKey, 0, -1);
+    const patientsData = await priorityQueue.getAllPatientsFromQueue(roomNumber);
 
     if (!patientsData.length) {
       return res
@@ -47,19 +46,7 @@ routerDoctor.get("/get-appointments/:roomNumber", async (req, res) => {
         .json({ success: false, message: "No patients in queue" });
     }
 
-    // Phân tích dữ liệu JSON và bỏ qua các dữ liệu không hợp lệ
-    const parsedPatientsData = patientsData
-      .map((data) => {
-        try {
-          return JSON.parse(data);
-        } catch (error) {
-          console.error(`Invalid JSON data: ${data}`);
-          return null; // Trả về null nếu dữ liệu không hợp lệ
-        }
-      })
-      .filter((data) => data !== null); // Lọc bỏ những phần tử không hợp lệ
-
-    res.status(200).json(parsedPatientsData);
+    res.status(200).json(patientsData);
   } catch (err) {
     console.error("Error retrieving patients from queue:", err);
     res.status(500).json({ success: false, message: "Internal Server Error" });

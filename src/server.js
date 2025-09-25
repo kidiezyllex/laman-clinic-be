@@ -34,22 +34,26 @@ const port = process.env.PORT || 3000;
 
 // Kết nối đến MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000, 
+    socketTimeoutMS: 45000, 
+  })
   .then(() => console.log("MongoDB connected successfully"))
-  .catch((err) => console.log("MongoDB connection error:", err));
+  .catch((err) => {
+    console.log("MongoDB connection error:", err);
+    console.log("Server will continue to run but database operations may fail");
+  });
 const corsOptions = {
-// Allow requests from your client
   origin: [
     "http://localhost:3001",
     "http://localhost:8888",
     "https://lamanclinic.vercel.app",
   ],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Allowed HTTP methods
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], 
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-// Middleware
 app.use(bodyParser.json());
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -74,19 +78,24 @@ app.use("/api/clinics", clinicRoutes);
 app.use("/api/diagnoses", diagnosisRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/laboratory-technicians", laboratoryTechnicianRoutes);
-// app.use("/api/labTests", labTestRoutes);
-// Hàm khởi động ứng dụng
+
+app.get("/health", (req, res) => {
+  res.json({
+    status: "OK",
+    message: "Server is running",
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+  });
+});
 
 app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
   startApp();
 });
 const startApp = async () => {
-  // Thay thế Redis và Kafka connections bằng in-memory systems
   await inMemoryCache.connect();
   await messageQueue.connect();
   
-  // Khởi động các processors thay thế cho Kafka consumers
   await departmentProcessor.start();
   await pharmacistProcessor.start();
   await labTestProcessor.start();

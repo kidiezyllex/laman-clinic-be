@@ -27,6 +27,15 @@ class MessageQueue extends EventEmitter {
       // Emit event để trigger consumers
       this.emit(topic, message);
       
+      // Also emit to regex subscribers
+      if (this.regexSubscribers) {
+        for (const { pattern, callback } of this.regexSubscribers) {
+          if (pattern.test(topic)) {
+            callback(message);
+          }
+        }
+      }
+      
       console.log(`Message sent to topic ${topic}`);
       return true;
     } catch (err) {
@@ -108,6 +117,41 @@ class MessageQueue extends EventEmitter {
   async disconnect() {
     this.isConnected = false;
     console.log("Message Queue disconnected");
+  }
+
+  /**
+   * Subscribe to topic messages (thay thế Kafka consumer.subscribe)
+   * @param {string|RegExp} topicPattern - Topic name or regex pattern
+   * @param {Function} callback - Callback function to handle messages
+   */
+  subscribe(topicPattern, callback) {
+    if (typeof topicPattern === 'string') {
+      // Subscribe to specific topic
+      this.on(topicPattern, callback);
+    } else if (topicPattern instanceof RegExp) {
+      // For RegExp patterns, we'll store the pattern and callback
+      // and check against it when messages are sent
+      if (!this.regexSubscribers) {
+        this.regexSubscribers = [];
+      }
+      this.regexSubscribers.push({ pattern: topicPattern, callback });
+      
+      // Also subscribe to a generic event that we'll emit for regex matches
+      this.on('regexMessage', (topic, message) => {
+        if (topicPattern.test(topic)) {
+          callback(message);
+        }
+      });
+    }
+  }
+
+  /**
+   * Unsubscribe from topic messages
+   * @param {string} topic - Topic name
+   * @param {Function} callback - Callback function to remove
+   */
+  unsubscribe(topic, callback) {
+    this.off(topic, callback);
   }
 
   /**

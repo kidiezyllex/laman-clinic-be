@@ -7,7 +7,7 @@ import {
   getListPharmacists,
 } from "../repositories/pharmacistRepository.js";
 import { completePrescriptionRepository } from "../repositories/prescriptionRepository.js";
-import { getAppointmentsFromQueueRepo } from "../repositories/queueRepository.js";
+import { getAppointmentsFromQueueRepo, removeFromQueueRepo } from "../repositories/queueRepository.js";
 
 export const getPharmacistByEmail = async (email) => {
   let query = {};
@@ -16,7 +16,7 @@ export const getPharmacistByEmail = async (email) => {
   }
   return await findPharmacist(query);
 };
-// Get all prescriptions from Redis queue
+// Get all prescriptions from in-memory queue
 export const getPrescriptionsFromQueue = async () => {
   const queueKey = `queue:Pharmacist`;
   const prescriptionsData = await getAppointmentsFromQueueRepo(queueKey);
@@ -90,7 +90,7 @@ export const completePrescriptionService = async (
 
     console.log("Found patient to delete:", prescriptionsDelete);
 
-    await removeFromQueue("queue:Pharmacist", prescriptionsDelete);
+    await removeFromQueueRepo("queue:Pharmacist", prescriptionsDelete);
 
     return "Appointment completed successfully";
   } catch (err) {

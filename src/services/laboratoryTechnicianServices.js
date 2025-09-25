@@ -1,4 +1,4 @@
-import { redisClient } from "../redis/redisClient.js";
+// Removed Redis import - now using in-memory systems
 import {
   createLaboratoryTechnician,
   getListLaboratoryTechnicians,
